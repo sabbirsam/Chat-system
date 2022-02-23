@@ -1,62 +1,56 @@
-<?php 
-SESSION_START();
-include('./header.php');
-$loginError = '';
-if (!empty($_POST['username']) && !empty($_POST['pwd'])) {
-	include ('Chat.php');
-	$chat = new Chat();
-	$user = $chat->loginUsers($_POST['username'], $_POST['pwd']);	
-	print_r($user);
-	
-	if(!empty($user)) {
-		$_SESSION['username'] = $user[0]['username'];
-		$_SESSION['userid'] = $user[0]['userid'];
-		$chat->updateUserOnline($user[0]['userid'], 1);
-		$lastInsertId = $chat->insertUserLoginDetails($user[0]['userid']);
-		$_SESSION['login_details_id'] = $lastInsertId;
-		header("Location:index.php");
-	} else {
-		$loginError = "Invalid username or password!";
+<?php
+	include('conn.php');
+	session_start();
+	function check_input($data) {
+		$data = trim($data);
+		$data = stripslashes($data);
+		$data = htmlspecialchars($data);
+		return $data;
 	}
-}
-
-?>
-<title>phpzag.com : Demo Push Notification System with PHP & MySQL</title>
-<?php include('./container.php');?>
-<div class="container">		
-	<h2>Example: Build Live Chat System with Ajax, PHP & MySQL</h1>		
-	<div class="row">
-		<div class="col-sm-4">
-			<h4>Chat Login:</h4>		
-			<form method="post">
-				<div class="form-group">
-				<?php if ($loginError ) { ?>
-					<div class="alert alert-warning"><?php echo $loginError; ?></div>
-				<?php } ?>
-				</div>
-				<div class="form-group">
-					<label for="username">User:</label>
-					<input type="username" class="form-control" name="username" required>
-				</div>
-				<div class="form-group">
-					<label for="pwd">Password:</label>
-					<input type="password" class="form-control" name="pwd" required>
-				</div>  
-				<button type="submit" name="login" class="btn btn-info">Login</button>
-			</form>
-			<br>
-			<p><b>User</b> : adam<br><b>Password</b> : 123</p>
-			<p><b>User</b> : rose<br><b>Password</b> : 123</p>
-			<p><b>User</b> : smith<br><b>Password</b>: 123</p>
-			<p><b>User</b> : merry<br><b>Password</b>: 123</p>
-		</div>
+	
+	if ($_SERVER["REQUEST_METHOD"] == "POST") {
+		$username=check_input($_POST['username']);
 		
-	</div>
-</div>	
-<?php include('./footer.php');?>
-
-
-
-
-
-
+		if (!preg_match("/^[a-zA-Z0-9_]*$/",$username)) {
+			$_SESSION['msg'] = "Username should not contain space and special characters!"; 
+			header('location: index.php');
+		}
+		else{
+			
+		$fusername=$username;
+		
+		$password = check_input($_POST["password"]);
+		$fpassword=md5($password);
+		
+		$query=mysqli_query($conn,"select * from `user` where username='$fusername' and password='$fpassword'");
+		
+		if(mysqli_num_rows($query)==0){
+			$_SESSION['msg'] = "Login Failed, Invalid Input!";
+			header('location: index.php');
+		}
+		else{
+			
+			$row=mysqli_fetch_array($query);
+			if ($row['access']==1){
+				$_SESSION['id']=$row['userid'];
+				?>
+				<script>
+					window.alert('Login Success, Welcome Admin!');
+					window.location.href='admin/';
+				</script>
+				<?php
+			}
+			else{
+				$_SESSION['id']=$row['userid'];
+				?>
+				<script>
+					window.alert('Login Success, Welcome User!');
+					window.location.href='user/';
+				</script>
+				<?php
+			}
+		}
+		
+		}
+	}
+?>
